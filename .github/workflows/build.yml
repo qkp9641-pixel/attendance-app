@@ -22,40 +22,50 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
       - name: Extract Android Project
         run: |
           rm -rf extracted
-          mkdir -p extracted
+          mkdir extracted
+
           unzip -q AttendanceApp-AndroidStudio-FIXED.zip -d extracted
-          echo "Extracted files:"
-          find extracted -maxdepth 5 -type f | head -100
+
+          echo "===== PROJECT FILES ====="
+          find extracted -maxdepth 5 -type f | head -200
 
       - name: Find Android Project
         run: |
-          PROJECT_DIR=$(dirname "$(find extracted -name gradlew -type f | head -1)")
+          PROJECT_DIR=$(dirname "$(find extracted -name build.gradle.kts -o -name build.gradle | head -1)")
 
           if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
-            echo "ERROR: gradlew not found inside extracted project."
-            echo "Searching for project files:"
-            find extracted -maxdepth 6 -type f | head -200
+            echo "ERROR: Android project not found."
+            find extracted -maxdepth 6 -type f
             exit 1
           fi
 
-          echo "Android project found at: $PROJECT_DIR"
+          echo "Android project found:"
+          echo "$PROJECT_DIR"
+
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build APK
         run: |
-          echo "Building from: $PROJECT_DIR"
           cd "$PROJECT_DIR"
 
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          echo "===== CURRENT DIRECTORY ====="
+          pwd
+
+          echo "===== PROJECT FILES ====="
+          ls -la
+
+          echo "===== BUILD APK ====="
+          gradle assembleDebug --no-daemon
 
       - name: Find APK
         run: |
-          APK_PATH=$(find "$PROJECT_DIR" -path "*/app/build/outputs/apk/debug/*.apk" -type f | head -1)
+          APK_PATH=$(find "$PROJECT_DIR" -type f -path "*/app/build/outputs/apk/debug/*.apk" | head -1)
 
           if [ -z "$APK_PATH" ]; then
             echo "ERROR: APK not found."
@@ -63,7 +73,9 @@ jobs:
             exit 1
           fi
 
-          echo "APK found at: $APK_PATH"
+          echo "APK FOUND:"
+          echo "$APK_PATH"
+
           echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
 
       - name: Upload APK
