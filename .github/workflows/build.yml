@@ -20,62 +20,56 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle
+      - name: Setup Gradle 8.10.2
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.10.2'
 
       - name: Extract Android Project
         run: |
           rm -rf extracted
-          mkdir extracted
-
+          mkdir -p extracted
           unzip -q AttendanceApp-AndroidStudio-FIXED.zip -d extracted
-
-          echo "===== PROJECT FILES ====="
-          find extracted -maxdepth 5 -type f | head -200
+          echo "Extracted files:"
+          find extracted -maxdepth 4 -type f | head -100
 
       - name: Find Android Project
         run: |
-          PROJECT_DIR=$(dirname "$(find extracted -name build.gradle.kts -o -name build.gradle | head -1)")
+          PROJECT_DIR=$(dirname "$(find extracted -name build.gradle.kts -type f | head -1)")
 
-          if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
+          if [ -z "$PROJECT_DIR" ]; then
             echo "ERROR: Android project not found."
-            find extracted -maxdepth 6 -type f
             exit 1
           fi
 
-          echo "Android project found:"
-          echo "$PROJECT_DIR"
-
+          echo "Android project found at: $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-      - name: Build APK
+      - name: Update Gradle Wrapper
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          cd "$PROJECT_DIR"
+          if [ -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+            sed -i 's#gradle-[0-9][0-9.]*-bin.zip#gradle-8.10.2-bin.zip#g' gradle/wrapper/gradle-wrapper.properties
+            echo "Gradle wrapper updated to 8.10.2"
+            cat gradle/wrapper/gradle-wrapper.properties
+          fi
 
-          echo "===== CURRENT DIRECTORY ====="
-          pwd
-
-          echo "===== PROJECT FILES ====="
-          ls -la
-
-          echo "===== BUILD APK ====="
+      - name: Build APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          gradle --version
           gradle assembleDebug --no-daemon
 
       - name: Find APK
         run: |
-          APK_PATH=$(find "$PROJECT_DIR" -type f -path "*/app/build/outputs/apk/debug/*.apk" | head -1)
+          APK_PATH=$(find "${PROJECT_DIR}" -path "*/build/outputs/apk/debug/*.apk" -type f | head -1)
 
           if [ -z "$APK_PATH" ]; then
             echo "ERROR: APK not found."
-            find "$PROJECT_DIR" -type f -name "*.apk"
             exit 1
           fi
 
-          echo "APK FOUND:"
-          echo "$APK_PATH"
-
+          echo "APK found at: $APK_PATH"
           echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
 
       - name: Upload APK
