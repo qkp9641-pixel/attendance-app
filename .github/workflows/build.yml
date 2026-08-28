@@ -25,16 +25,20 @@ jobs:
 
       - name: Extract Android Project
         run: |
+          rm -rf extracted
+          mkdir -p extracted
           unzip -q AttendanceApp-AndroidStudio-FIXED.zip -d extracted
           echo "Extracted files:"
-          find extracted -maxdepth 4 -type f | head -100
+          find extracted -maxdepth 5 -type f | head -100
 
       - name: Find Android Project
         run: |
-          PROJECT_DIR="$(dirname "$(find extracted -type f -name gradlew -print -quit)")"
+          PROJECT_DIR=$(dirname "$(find extracted -name gradlew -type f | head -1)")
 
-          if [ -z "$PROJECT_DIR" ]; then
+          if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
             echo "ERROR: gradlew not found inside extracted project."
+            echo "Searching for project files:"
+            find extracted -maxdepth 6 -type f | head -200
             exit 1
           fi
 
@@ -43,17 +47,19 @@ jobs:
 
       - name: Build APK
         run: |
+          echo "Building from: $PROJECT_DIR"
           cd "$PROJECT_DIR"
-          echo "Building from: $(pwd)"
+
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Find APK
         run: |
-          APK_PATH="$(find "$PROJECT_DIR" -type f -path "*/build/outputs/apk/debug/*.apk" -print -quit)"
+          APK_PATH=$(find "$PROJECT_DIR" -path "*/app/build/outputs/apk/debug/*.apk" -type f | head -1)
 
           if [ -z "$APK_PATH" ]; then
             echo "ERROR: APK not found."
+            find "$PROJECT_DIR" -type f -name "*.apk"
             exit 1
           fi
 
