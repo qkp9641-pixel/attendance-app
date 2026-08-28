@@ -25,7 +25,7 @@ jobs:
 
       - name: Extract Android Project
         run: |
-          unzip -q AttendanceApp-AndroidStudio.zip -d extracted
+          unzip -q AttendanceApp-AndroidStudio-FIXED.zip -d extracted
           ls -la extracted
 
       - name: Build APK
