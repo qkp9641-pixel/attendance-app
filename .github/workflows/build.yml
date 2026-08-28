@@ -26,16 +26,41 @@ jobs:
       - name: Extract Android Project
         run: |
           unzip -q AttendanceApp-AndroidStudio-FIXED.zip -d extracted
-          ls -la extracted
+          echo "Extracted files:"
+          find extracted -maxdepth 4 -type f | head -100
+
+      - name: Find Android Project
+        run: |
+          PROJECT_DIR=$(dirname "$(find extracted -name gradlew -type f | head -1)")
+          
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERROR: gradlew not found inside extracted project."
+            exit 1
+          fi
+          
+          echo "Android project found at: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build APK
-        working-directory: extracted/attendance_android
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+
+      - name: Find APK
+        run: |
+          APK_PATH=$(find "$PROJECT_DIR" -path "*/app/build/outputs/apk/debug/*.apk" -type f | head -1)
+          
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: APK not found."
+            exit 1
+          fi
+          
+          echo "APK found at: $APK_PATH"
+          echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Attendance-App-APK
-          path: extracted/attendance_android/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.APK_PATH }}
