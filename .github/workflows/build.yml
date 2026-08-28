@@ -31,31 +31,32 @@ jobs:
 
       - name: Find Android Project
         run: |
-          PROJECT_DIR=$(dirname "$(find extracted -name gradlew -type f | head -1)")
-          
+          PROJECT_DIR="$(dirname "$(find extracted -type f -name gradlew -print -quit)")"
+
           if [ -z "$PROJECT_DIR" ]; then
             echo "ERROR: gradlew not found inside extracted project."
             exit 1
           fi
-          
+
           echo "Android project found at: $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build APK
-        working-directory: ${{ env.PROJECT_DIR }}
         run: |
+          cd "$PROJECT_DIR"
+          echo "Building from: $(pwd)"
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Find APK
         run: |
-          APK_PATH=$(find "$PROJECT_DIR" -path "*/app/build/outputs/apk/debug/*.apk" -type f | head -1)
-          
+          APK_PATH="$(find "$PROJECT_DIR" -type f -path "*/build/outputs/apk/debug/*.apk" -print -quit)"
+
           if [ -z "$APK_PATH" ]; then
             echo "ERROR: APK not found."
             exit 1
           fi
-          
+
           echo "APK found at: $APK_PATH"
           echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
 
