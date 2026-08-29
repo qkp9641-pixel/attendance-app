@@ -29,7 +29,7 @@ jobs:
         run: |
           rm -rf extracted
           mkdir -p extracted
-          unzip -q AttendanceApp-AndroidStudio-CAMERA-ONLY(1).zip -d extracted
+          unzip -q "AttendanceApp-AndroidStudio-CAMERA-ONLY(1).zip" -d extracted
           echo "Extracted files:"
           find extracted -maxdepth 4 -type f | head -100
 
